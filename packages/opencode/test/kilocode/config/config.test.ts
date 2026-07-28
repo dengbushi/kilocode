@@ -152,6 +152,51 @@ describe("global config updates", () => {
 })
 
 describe("kilocode indexing config", () => {
+  test("creates global indexing config when optional fields are unset", async () => {
+    await using globalTmp = await tmpdir()
+    await using tmp = await tmpdir()
+
+    const prev = Global.Path.config
+    ;(Global.Path as { config: string }).config = globalTmp.path
+    await clear()
+    await disposeAllInstances()
+
+    try {
+      await writeConfig(
+        globalTmp.path,
+        {
+          $schema: "https://app.kilo.ai/config.json",
+        },
+        "kilo.jsonc",
+      )
+
+      await provideTestInstance({
+        directory: tmp.path,
+        fn: async () => {
+          await saveGlobal({
+            indexing: {
+              model: null,
+              dimension: null,
+              provider: "openai-compatible",
+            },
+          })
+        },
+      })
+
+      const config = await Bun.file(path.join(globalTmp.path, "kilo.jsonc")).json()
+      expect(config).toEqual({
+        $schema: "https://app.kilo.ai/config.json",
+        indexing: {
+          provider: "openai-compatible",
+        },
+      })
+    } finally {
+      ;(Global.Path as { config: string }).config = prev
+      await clear()
+      await disposeAllInstances()
+    }
+  })
+
   test("ignores retired semantic indexing flags in existing configs", async () => {
     await using tmp = await tmpdir({ git: true })
     await writeConfig(tmp.path, {

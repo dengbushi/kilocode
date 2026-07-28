@@ -207,6 +207,12 @@ function globalConfigFile() {
 
 function patchJsonc(input: string, patch: unknown, path: string[] = []): string {
   if (!isRecord(patch)) {
+    // kilocode_change start - deleting a missing JSONC path is already satisfied
+    if (patch === null || patch === undefined) {
+      const tree = parseTree(input)
+      if (!tree || !findNodeAtLocation(tree, path)) return input
+    }
+    // kilocode_change end
     const edits = modify(input, path, patch === null ? undefined : patch, {
       // kilocode_change
       formattingOptions: {
